@@ -16,8 +16,9 @@ function createWindow() {
     resizable: true,
     webPreferences: {
       contextIsolation: true,
+      nodeIntegration: false,
       preload: path.join(__dirname, "preload.js"),
-      sandbox: true,
+      sandbox: false,
     },
   });
   win.setMenuBarVisibility(false);
