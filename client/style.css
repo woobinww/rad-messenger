@@ -1,0 +1,387 @@
+:root {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: #0e1116;
+  color: #e7eaf0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0e1320;
+  border-bottom: 1px solid #222a3d;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #cfd8e3;
+}
+header .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* 왼쪽: 앱 타이틀 + 사용자 정보 */
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* 오른쪽: 컨트롤 묶음 */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: 0.2s;
+  overflow: visible;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.icon-btn:hover {
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.icon-btn.active {
+  opacity: 1;
+  color: #4caf50; /* 활성화 색상 */
+  background: rgba(76, 175, 80, 0.15);
+}
+
+.icon-btn svg {
+  width: 40px;
+  height: 40px;
+  stroke-width: 2.2;
+}
+
+#appTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: #e8eefc;
+}
+
+.bell,
+.pin {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  font-size: 12px;
+  opacity: 0.9;
+}
+#soundVol {
+  width: 90px;
+  cursor: pointer;
+  accent-color: #4caf50;
+  vertical-align: middle;
+}
+/* 전체 레이아웃이 줄바꿈되지 않게 */
+header label,
+header input {
+  white-space: nowrap;
+}
+#pinTop {
+  transform: translateY(1px);
+}
+h1 {
+  margin: 0;
+  font-size: 16px;
+}
+#me {
+  opacity: 0.85;
+  font-size: 12px;
+}
+/* 입력 폼 높이를 제외한 영역에 스크롤 박스 */
+main {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 10px;
+}
+#messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.msg {
+  position: relative; /* 상태 버튼 바 등 배치 여유 */
+  display: flex;
+  width: 100%;
+}
+.msg.pos-left {
+  justify-content: flex-start;
+}
+.msg.pos-center {
+  justify-content: center;
+}
+.msg.pos-right {
+  justify-content: flex-end;
+}
+.bubble {
+  max-width: 90%;
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  backdrop-filter: saturate(115%);
+}
+/* ⬇️ 위치별 미세 톤 차별 */
+.msg.pos-left .bubble {
+  /* 촬영실(왼쪽) = 청색 계열 */
+  background: linear-gradient(180deg, #0f1726, #101a2b);
+  border: 1px solid #2a3d63;
+}
+.msg.pos-left .bubble:hover {
+  box-shadow: 0 8px 20px rgba(20, 60, 130, 0.25);
+}
+
+.msg.pos-center .bubble {
+  /* 검사가능(가운데) = 녹색 계열 */
+  background: linear-gradient(180deg, #0f1f1a, #10241d);
+  border: 1px solid #2b5b40;
+}
+.msg.pos-center .bubble:hover {
+  box-shadow: 0 8px 20px rgba(40, 120, 80, 0.25);
+}
+
+.msg.pos-right .bubble {
+  /* 환복/부재(오른쪽) = 자주톤 */
+  background: linear-gradient(180deg, #1b1420, #1e1624);
+  border: 1px solid #5d3b5d;
+}
+.msg.pos-right .bubble:hover {
+  box-shadow: 0 8px 20px rgba(120, 60, 140, 0.25);
+}
+
+/* 배지도 은근히 톤 맞추기(선택) */
+.badge.room {
+  background: #1b2a44;
+  border-color: #2b3e63;
+}
+.badge.ready {
+  background: #1f3a2a;
+  border-color: #2f5b40;
+} /* 검사가능(녹색) */
+.badge.status {
+  background: #3a243a;
+  border-color: #5d3b5d;
+} /* 환복/부재 */
+/* ⬇️ 반짝(2초) */
+@keyframes flashPulse {
+  0% {
+    box-shadow:
+      0 0 0 rgba(255, 255, 255, 0),
+      0 0 0 0 rgba(0, 0, 0, 0);
+    transform: scale(1);
+  }
+  15% {
+    box-shadow:
+      0 0 0 rgba(255, 255, 255, 0.35),
+      0 0 18px 2px rgba(255, 255, 255, 0.15);
+    transform: scale(1.01);
+  }
+  50% {
+    box-shadow:
+      0 0 0 rgba(255, 255, 255, 0.18),
+      0 0 12px 1px rgba(255, 255, 255, 0.08);
+    transform: scale(1.005);
+  }
+  100% {
+    box-shadow:
+      0 0 0 rgba(255, 255, 255, 0),
+      0 0 0 0 rgba(0, 0, 0, 0);
+    transform: scale(1);
+  }
+}
+.flash {
+  animation: flashPulse 2s ease-out 1;
+}
+.meta {
+  font-size: 12px;
+  opacity: 0.9;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+/* 팝오버 메뉴 */
+.popover {
+  position: fixed; /* 부모 레이아웃 영향 x */
+  z-index: 9999; /* 어떤 카드/입력칸 위로 */
+  font-size: 10px; /* 글자 크기 줄임 */
+  line-height: 0.8;
+  min-width: 60px; /* 살짝만 넓이 */
+  max-width: 150px;
+  max-height: 50vh; /* 너무 길면 스크롤 */
+  overflow: auto;
+  background: #0f1422;
+  border: 1px solid #2b364d;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  padding: 6px;
+}
+/* 팝오버가 아래로 펼칠 때 */
+.popover[data-placement="bottom"] {
+  transform-origin: top left;
+}
+/* 팝오버가 위로 “플립”될 때 */
+.popover[data-placement="top"] {
+  transform-origin: bottom left;
+}
+
+.popover .item {
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.popover .item:hover {
+  background: #1b2130;
+}
+.popover .sep {
+  height: 1px;
+  background: #2b364d;
+  margin: 6px 0;
+  opacity: 0.6;
+}
+
+.badge {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  border: 1px solid #3a4863;
+  cursor: pointer; /* 뱃지 클릭 가능 표시 */
+}
+.badge.room {
+  background: #1b2a44;
+}
+.badge.status {
+  background: #3a243a;
+  border-color: #5d3b5d;
+}
+.badge.ready {
+  background: #1f3a2a;
+  border-color: #2f5b40;
+}
+.patient {
+  font-size: 14px;
+  font-weight: 600;
+}
+form {
+  flex: 0 0 auto;
+  background: #1b2130;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #2b364d;
+}
+#patient {
+  flex: 1;
+  min-width: 140px;
+  font-size: 13px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  /*
+border: 1px solid #2b364d;
+background: #101725;
+color: #e7eaf0;
+*/
+}
+.choices {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+fieldset {
+  border: 1px solid #2b364d;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+legend {
+  padding: 0 6px;
+  opacity: 0.9;
+}
+button {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #2b364d;
+  background: #0f6cff;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover {
+  filter: brightness(1.08);
+}
+
+/* ==== 폼 전체 축소 ==== */
+#chatForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px; /* 간격 좁게 */
+  font-size: 13px; /* 글자 크기 축소 */
+  padding: 4px 6px; /* 위아래 여백 줄이기 */
+}
+
+/* ==== 라벨 (촬영실 / 상태 텍스트) ==== */
+#chatForm label {
+  font-size: 12px;
+  color: #ccc;
+  margin-right: 4px;
+}
+
+/* ==== 전송 버튼 ==== */
+#chatForm button[type="submit"] {
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#chatForm button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+/* ==== 라디오 버튼 그룹 ==== */
+.room-group,
+.status-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.room-group input[type="radio"],
+.status-group input[type="checkbox"] {
+  transform: scale(0.9); /* 버튼 살짝 축소 */
+  cursor: pointer;
+}

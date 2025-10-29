@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>부서 메신저</title>
+
+    <!-- CSP: 개발용 간소화. CDN 안 쓰고 로컬 socket.io.min.js 쓸 때 가장 깔끔 -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+                 script-src 'self' https://cdn.socket.io;
+                 connect-src 'self' http://192.168.0.20:3030 ws://192.168.0.20:3030 https://cdn.socket.io;
+                 img-src 'self' data:;
+                 style-src 'self' 'unsafe-inline';
+                 font-src 'self';
+                 base-uri 'none';"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="header-left">
+        <div id="appTitle">부서 메신저</div>
+        <div id="me"></div>
+      </div>
+      <div class="header-right">
+        <button id="pinBtn" class="icon-btn" title="항상 위">
+          <i data-lucide="pin"></i>
+        </button>
+        <button id="soundBtn" class="icon-btn active" title="알람음">
+          <i data-lucide="bell"></i>
+        </button>
+        <input
+          type="range"
+          id="soundVol"
+          min="0"
+          max="1"
+          step="0.05"
+          value="1"
+        />
+      </div>
+    </header>
+
+    <main>
+      <ul id="messages"></ul>
+    </main>
+
+    <!-- ✅ 반드시 이 ID가 존재해야 함 -->
+    <form id="chatForm">
+      <input
+        id="patient"
+        type="text"
+        placeholder="환자 이름"
+        autocomplete="off"
+        required
+      />
+
+      <div class="choices">
+        <fieldset>
+          <legend>촬영실</legend>
+          <label><input type="radio" name="room" value="1" /> 1촬영실</label>
+          <label><input type="radio" name="room" value="2" /> 2촬영실</label>
+        </fieldset>
+        <fieldset>
+          <legend>상태</legend>
+          <label
+            ><input type="checkbox" id="statusChanging" value="환복중" />
+            환복중</label
+          >
+          <label
+            ><input type="checkbox" id="statusAway" value="부재중" />
+            부재중</label
+          >
+        </fieldset>
+      </div>
+
+      <button type="submit">전송</button>
+    </form>
+
+    <!-- CDN 대신 로컬 파일 권장: ./socket.io.min.js (CDN 쓰면 CSP에 cdn 도메인 허용 필요) -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="./vendor/lucide.min.js"></script>
+    <!-- ✅ renderer는 body 맨 마지막에! -->
+    <script src="renderer.js"></script>
+  </body>
+</html>

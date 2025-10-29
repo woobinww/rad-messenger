@@ -1,0 +1,14 @@
+{
+  "name": "rad-messenger-client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^39.0.0",
+    "socket.io-client": "^4.7.5"
+  }
+}
