@@ -1,1 +1,33 @@
+# Node modules
 node_modules/
+
+# Build output
+dist/
+out/
+
+# Databases or temp files
+*.db*
+*.sqlite
+*.log
+logs/
+tmp/
+
+# Electron build artifacts
+*.exe
+*.dll
+*.asar
+
+# System / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / editor settings
+.vscode/
+.idea/
+*.swp
+
+# OS-specific
+ehthumbs.db
+Icon?
+

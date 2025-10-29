@@ -1,14 +1,58 @@
 {
   "name": "rad-messenger-client",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "영상과 촬영실간 신호 교환 메신저",
+  "author": "이우빈",
   "main": "main.js",
+  "build": {
+    "appId": "com.woobinww.radmessenger",
+    "productName": "Rad Messenger",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "style.css",
+      "vendor/**",
+      "sounds/**",
+      "assets/**"
+    ],
+    "extraResources": [
+      {
+        "from": "defaults/config.default.json",
+        "to": "config.default.json"
+      },
+      {
+        "from": "sounds",
+        "to": "sounds"
+      },
+      {
+        "from": "vendor",
+        "to": "vendor"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "RadMessenger-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
   "type": "commonjs",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "dependencies": {
-    "electron": "^39.0.0",
     "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
   }
 }

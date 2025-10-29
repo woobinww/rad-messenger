@@ -9,8 +9,8 @@
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self';
-                 script-src 'self' https://cdn.socket.io;
-                 connect-src 'self' http://192.168.0.20:3030 ws://192.168.0.20:3030 https://cdn.socket.io;
+                 script-src 'self';
+                 connect-src 'self' http://192.168.10.70:3030 ws://192.168.10.70:3030;
                  img-src 'self' data:;
                  style-src 'self' 'unsafe-inline';
                  font-src 'self';
@@ -80,7 +80,7 @@
     </form>
 
     <!-- CDN 대신 로컬 파일 권장: ./socket.io.min.js (CDN 쓰면 CSP에 cdn 도메인 허용 필요) -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="./vendor/socket.io.min.js"></script>
     <script src="./vendor/lucide.min.js"></script>
     <!-- ✅ renderer는 body 맨 마지막에! -->
     <script src="renderer.js"></script>

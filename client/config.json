@@ -1,5 +1,8 @@
 {
   "serverUrl": "http://192.168.0.20:3030",
   "displayName": "MRI",
-  "defaultRoom": "1"
+  "defaultRoom": "1",
+  "alwaysOnTop": false,
+  "soundEnabled": true,
+  "soundVolume": 1
 }
