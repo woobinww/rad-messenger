@@ -1,5 +1,5 @@
 {
-  "serverUrl": "http://192:168.10.70:3030",
+  "serverUrl": "http://192.168.10.70:3030",
   "displayName": "Unknown",
   "defaultRoom": "1",
   "alwaysOnTop": false,

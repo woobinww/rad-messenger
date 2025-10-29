@@ -4,19 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>부서 메신저</title>
-
-    <!-- CSP: 개발용 간소화. CDN 안 쓰고 로컬 socket.io.min.js 쓸 때 가장 깔끔 -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self';
-                 script-src 'self';
-                 connect-src 'self' http://192.168.10.70:3030 ws://192.168.10.70:3030;
-                 img-src 'self' data:;
-                 style-src 'self' 'unsafe-inline';
-                 font-src 'self';
-                 base-uri 'none';"
-    />
-
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>

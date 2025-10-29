@@ -1,5 +1,5 @@
 {
-  "serverUrl": "http://192.168.0.20:3030",
+  "serverUrl": "http://192.168.10.100:3030",
   "displayName": "MRI",
   "defaultRoom": "1",
   "alwaysOnTop": false,

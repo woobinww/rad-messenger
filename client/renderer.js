@@ -7,7 +7,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   const cfg = await window.api.loadConfig().catch((e) => {
     console.error("[init] loadConfig failed:", e);
     return {
-      serverUrl: "http://192.168.0.20:3030",
+      serverUrl: "http://192.168.10.70:3030",
       displayName: "Unknown",
       defaultRoom: "1",
     };
