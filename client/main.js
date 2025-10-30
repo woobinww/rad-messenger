@@ -4,6 +4,43 @@ const { app, BrowserWindow, ipcMain, session } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
+const PROGRAM_DATA_CFG = "C:\\ProgramData\\RadMessenger\\client\\config.json";
+const DEFAULT_CFG_IN_RES = path.join(
+  process.resourcesPath,
+  "config.default.json",
+);
+
+function ensureProgramDataConfig() {
+  try {
+    const dir = path.dirname(PROGRAM_DATA_CFG);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    if (!fs.existsSync(PROGRAM_DATA_CFG)) {
+      const fallback = fs.existsSync(DEFAULT_CFG_IN_RES)
+        ? fs.readFileSync(DEFAULT_CFG_IN_RES, "utf-8")
+        : JSON.stringify(
+            {
+              serverUrl: "http://192.168.10.70:3030",
+              displayName: "MRI",
+              defaultRoom: "1",
+              alwaysOnTop: true,
+              soundEnabled: true,
+              soundVolume: 0.8,
+            },
+            null,
+            2,
+          );
+
+      fs.writeFileSync(PROGRAM_DATA_CFG, fallback, "utf-8");
+    }
+  } catch (e) {
+    console.warn("[config] ensureProgramDataConfig failed:", e);
+  }
+}
+
+// app.whenReady() 전에 호출해도 무방
+ensureProgramDataConfig();
+
 // ---- 공통 유틸 ----
 function readJsonSafe(p) {
   try {

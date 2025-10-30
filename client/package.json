@@ -19,7 +19,7 @@
     ],
     "extraResources": [
       {
-        "from": "defaults/config.default.json",
+        "from": "build/config.default.json",
         "to": "config.default.json"
       },
       {
@@ -40,7 +40,8 @@
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "include": "build/installer.nsh"
     }
   },
   "type": "commonjs",
