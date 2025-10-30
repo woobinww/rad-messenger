@@ -4,7 +4,7 @@
   SetShellVarContext all
 
   ; 목적지 폴더
-  StrCpy $0 "$PROGRAMDATA\RadMessenger\client"
+  StrCpy $0 "$APPDATA\RadMessenger\client"
 
   ; 이미 사용자가 만든 config.json이 있으면 보존 (덮어쓰지 않음)
   IfFileExists "$0\config.json" 0 +3
@@ -15,7 +15,7 @@
   CreateDirectory "$0"
   SetOutPath "$0"
   ; 설치 패키지에 포함된 템플릿을 config.json으로 떨어뜨림
-  File "/oname=config.json" "build\config.default.json"
+  File "/oname=config.json" "${BUILD_RESOURCES_DIR}\config.default.json"
 
 done_config:
 !macroend

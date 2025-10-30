@@ -1,8 +1,8 @@
 {
   "name": "rad-messenger-client",
   "version": "1.0.0",
-  "description": "영상과 촬영실간 신호 교환 메신저",
-  "author": "이우빈",
+  "description": "messenger for gamtan rad. dept.",
+  "author": "woobin",
   "main": "main.js",
   "build": {
     "appId": "com.woobinww.radmessenger",
