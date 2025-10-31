@@ -274,10 +274,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // ==== 팝오버 메뉴 ====
   let popoverEl = null;
+  let isPopoverOpen = false;
   function closePopover() {
     if (popoverEl && popoverEl.parentNode)
       popoverEl.parentNode.removeChild(popoverEl);
     popoverEl = null;
+    isPopoverOpen = false;
   }
   // 개선된 팝오버: 화면 밖 잘림 방지 (상단 플립 + 우측/좌측 클램프)
   function openPopover(anchorRect, onPick) {
@@ -299,6 +301,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       <div class="item" data-room="" data-status="검사가능">검사가능</div>
     `;
     document.body.appendChild(popoverEl);
+    isPopoverOpen = true;
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -491,6 +494,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   // 서버 브로드캐스트로 온 업데이트를 DOM에 반영
   socket.on("chat:update", (u) => {
+    if (u && typeof u.reserveRoom === 'undefined' && typeof u.reserve_room !== 'undefined') {
+      u.reserveRoom = u.reserve_room;
+    }
     applyUpdateToDom(u);
     if (!u.by || u.by !== mySocketId) {
       playSound("update");
@@ -587,6 +593,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   msgs.addEventListener("mousedown", (e) => {
     // 인터랙션 요소 클릭시(삭제/배지 등) 드래그 비활성화
     if (e.button !== 0) return; // 좌클릭만
+    if (isPopoverOpen) return; // 팝오버 열려있으면 드래그 금지
     if (e.target.closest('[data-action]')) return;
     const li = e.target.closest("li.msg");
     if (!li) return;
@@ -603,9 +610,10 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   document.addEventListener("mousemove", (e) => {
     if (!dragState.active) return;
+    if (isPopoverOpen) return; // 팝오버 열려있으면 드래그 무시
     const dx = e.clientX - dragState.startX;
     const dy = e.clientY - dragState.startY;
-    const threshold = 4; // 약간 움직여야 드래그로 간주
+    const threshold = 10; // 오동작 방지를 위해 임계값 상향
 
     if (!dragState.started) {
       if (Math.abs(dx) + Math.abs(dy) < threshold) return;
