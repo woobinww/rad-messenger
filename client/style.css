@@ -218,11 +218,7 @@ main {
   border-color: #5d3b5d;
 } /* 환복/부재 */
 /* 예약 배지 (노란 포인트, 점선 테두리) */
-.badge.reserve {
-  background: #3b2f12;
-  border-color: #8a6f2a;
-  border-style: dashed;
-}
+
 /* ⬇️ 반짝(2초) */
 @keyframes flashPulse {
   0% {
@@ -303,6 +299,36 @@ main {
   margin: 6px 0;
   opacity: 0.6;
 }
+
+/* ==== 이모지 리액션 바 ==== */
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.react {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid #2b364d;
+  background: rgba(15, 20, 34, 0.6);
+  cursor: pointer;
+}
+.react.active {
+  border-color: #556aa3;
+  background: rgba(25, 36, 60, 0.75);
+}
+.react .cnt {
+  opacity: 0.9;
+}
+.react.add {
+  opacity: 0.8;
+}
+.react.add:hover { opacity: 1; }
 
 /* ===== Drag & Drop 상태 변경 UI ===== */
 .no-select {

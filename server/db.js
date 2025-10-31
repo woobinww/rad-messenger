@@ -2,32 +2,27 @@ const Database = require("better-sqlite3");
 const path = require("path");
 
 const db = new Database(path.join(__dirname, "messages.db"));
+db.pragma("journal_mode = WAL");
+db.exec(`
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER NOT NULL,
+  sender text NOT NULL,
+  text TEXT NOT NULL,
+  room TEXT,
+  status TEXT
+);
+`);
 
-function ensureMigrations() {
-  const info = db.prepare(`PRAGMA table_info(messages)`).all();
-  const cols = new Set(info.map((c) => c.name));
-  console.log("[db] columns=", Array.from(cols));
-
-  db.pragma("journal_mode = WAL");
-
-  db.exec(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts INTEGER NOT NULL,
-    sender text NOT NULL,
-    text TEXT NOT NULL,
-    room TEXT,
-    status TEXT
-  );
-  `);
-
-  if (!cols.has("reserve_room")) {
-    db.exec(`ALTER TABLE messages ADD COLUMN reserve_room TEXT`);
-    console.log("[db] migrated: add reserve_room column");
-  }
-}
-
-ensureMigrations();
+// 이모지 반응 테이블 (메시지별/이모지별/사용자별 유니크)
+db.exec(`
+CREATE TABLE IF NOT EXISTS reactions (
+  msg_id INTEGER NOT NULL,
+  emoji  TEXT    NOT NULL,
+  user   TEXT    NOT NULL,
+  PRIMARY KEY (msg_id, emoji, user)
+);
+`);
 
 const insertStmt = db.prepare(`
   INSERT INTO messages (ts, sender, text, room, status)
@@ -37,7 +32,7 @@ const insertStmt = db.prepare(`
 const listStmt = db.prepare(`
   SELECT
     COALESCE(id, rowid) AS id,
-    ts, sender, text, room, status, reserve_room
+    ts, sender, text, room, status
   FROM messages
   ORDER BY COALESCE(id, rowid) ASC
   LIMIT ? OFFSET ?
@@ -50,28 +45,25 @@ const updateStmt = db.prepare(`
   WHERE (id = @id OR rowid = @id)
 `);
 
-const updateReserveStmt = db.prepare(`
-  UPDATE messages
-  SET reserve_room = @reserve_room
-  WHERE (id = @id OR rowid = @id)
-`);
-
-const clearReserveIfMatchesStmt = db.prepare(`
-  UPDATE messages
-  SET reserve_room = NULL
-  WHERE (id = @id OR rowid = @id)
-    AND reserve_room = @room
-`);
-
-const getByIdStmt = db.prepare(`
-  SELECT COALESCE(id, rowid) AS id, ts, sender, text, room, status, reserve_room
-  FROM messages
-  WHERE (id = ? OR rowid = ?)
-`);
+// 예약 관련 스테이트는 제거
 
 const deleteStmt = db.prepare(`
   DELETE FROM messages
   WHERE (id = ? OR rowid = ?)
+`);
+
+// === reactions ===
+const reactExistsStmt = db.prepare(`
+  SELECT 1 FROM reactions WHERE msg_id = ? AND emoji = ? AND user = ?
+`);
+const reactInsertStmt = db.prepare(`
+  INSERT INTO reactions (msg_id, emoji, user) VALUES (?, ?, ?)
+`);
+const reactDeleteStmt = db.prepare(`
+  DELETE FROM reactions WHERE msg_id = ? AND emoji = ? AND user = ?
+`);
+const reactListByMsgStmt = db.prepare(`
+  SELECT emoji, user FROM reactions WHERE msg_id = ?
 `);
 
 module.exports = {
@@ -84,16 +76,28 @@ module.exports = {
   update(partial) {
     return updateStmt.run(partial);
   },
-  updateReserve(id, reserveRoom) {
-    return updateReserveStmt.run({ id, reserve_room: reserveRoom });
-  },
-  clearReserveIfMatches(id, room) {
-    return clearReserveIfMatchesStmt.run({ id, room });
-  },
-  getById(id) {
-    return getByIdStmt.get(id, id);
-  },
   delete(id) {
     return deleteStmt.run(id, id);
+  },
+  // reactions API
+  toggleReaction(msgId, emoji, user) {
+    const has = reactExistsStmt.get(msgId, emoji, user);
+    if (has) {
+      reactDeleteStmt.run(msgId, emoji, user);
+      return { action: "removed" };
+    } else {
+      reactInsertStmt.run(msgId, emoji, user);
+      return { action: "added" };
+    }
+  },
+  listReactions(msgId) {
+    // 반환 형태: { emoji1: [user,...], emoji2: [user,...] }
+    const rows = reactListByMsgStmt.all(msgId);
+    const map = {};
+    for (const r of rows) {
+      if (!map[r.emoji]) map[r.emoji] = [];
+      map[r.emoji].push(r.user);
+    }
+    return map;
   },
 };

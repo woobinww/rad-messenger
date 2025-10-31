@@ -18,11 +18,10 @@ app.get("/", (_, res) => res.send("rad-messenger server ok"));
 app.get("/history", (req, res) => {
   const limit = Math.min(parseInt(req.query.limit || "100", 10), 500);
   const offset = parseInt(req.query.offset || "0", 10);
-  const rows = db.list(limit, offset).map((r) => ({
-    ...r,
-    reserveRoom: r.reserve_room ?? null,
-  }));
-  res.json(rows);
+  const rows = db.list(limit, offset);
+  // 각 메시지에 reactions 맵 추가
+  const withReacts = rows.map((m) => ({ ...m, reactions: db.listReactions(m.id) }));
+  res.json(withReacts);
 });
 
 const server = http.createServer(app);
@@ -47,20 +46,12 @@ io.on("connection", (socket) => {
 
     const res = db.add(msg);
     const id = res.lastInsertRowid;
-    io.emit("chat:new", { id, ...msg, reserveRoom: null, by: socket.id }); // 예약 없음으로 초기화
+    io.emit("chat:new", { id, ...msg, reactions: {}, by: socket.id });
   });
 
   // 상태/촬영실 변경 (상호 배타 규칙 유지)
-  socket.on("chat:update", ({ id, room, status, reserveRoom }) => {
+  socket.on("chat:update", ({ id, room, status }) => {
     if (!id) return;
-
-    // 예약만 갱신하는 경우
-    if (typeof reserveRoom !== "undefined") {
-      db.updateReserve(id, reserveRoom || null);
-      io.emit("chat:update", { id, reserveRoom: reserveRoom || null, by: socket.id });
-      return;
-    }
-
     // 상태/룸 갱신
     const normalized = {
       id,
@@ -68,19 +59,18 @@ io.on("connection", (socket) => {
       status: status ?? null,
     };
     db.update(normalized);
-    // 룸으로 전환될 때, 동일 룸 예약이 있었다면 해제
-    if (normalized.room) {
-      db.clearReserveIfMatches(id, normalized.room);
-    }
-    // 현재 값 조회하여 클라이언트에 일관 반영
-    const after = db.getById(id) || {};
-    io.emit("chat:update", {
-      id,
-      room: after.room ?? normalized.room ?? null,
-      status: after.status ?? normalized.status ?? null,
-      reserveRoom: after.reserve_room ?? null,
-      by: socket.id,
-    });
+    io.emit("chat:update", { ...normalized, by: socket.id });
+  });
+
+  // 이모지 반응 토글
+  socket.on("reaction:toggle", ({ id, emoji, user }) => {
+    if (!id || !emoji || !user) return;
+    // 간단한 이모지 길이 제한 (보안/성능): 최대 8자
+    const e = String(emoji).slice(0, 8);
+    const u = String(user).slice(0, 64);
+    db.toggleReaction(id, e, u);
+    const reactions = db.listReactions(id);
+    io.emit("reaction:update", { id, reactions, by: socket.id });
   });
 
   // 메시지 삭제

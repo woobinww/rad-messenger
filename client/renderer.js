@@ -233,10 +233,6 @@ window.addEventListener("DOMContentLoaded", async () => {
       // 아무 상태/룸도 없을 때도 누르면 메뉴 열리도록 placeholder 배지
       meta.appendChild(makeBadge("상태 설정", "room"));
     }
-    const effReserve = initialReserve && (!m.room || String(m.room) !== String(initialReserve)) ? initialReserve : null;
-    if (effReserve) {
-      meta.appendChild(makeBadge(`예약: ${effReserve}촬영실`, "reserve"));
-    }
     // 삭제 버튼 (메타 우측)
     const del = document.createElement("span");
     del.className = "del-btn";
@@ -250,8 +246,37 @@ window.addEventListener("DOMContentLoaded", async () => {
     body.className = "patient";
     body.textContent = m.text;
 
+    // === 리액션 바 ===
+    const reacts = document.createElement("div");
+    reacts.className = "reactions";
+    reacts.dataset.id = String(m.id || "");
+    function fillReactions(reactionMap) {
+      reacts.innerHTML = "";
+      const common = m.reactions || reactionMap || {};
+      const myName = (window?.api ? null : null); // renderer에서 cfg참조가 쉬워서 아래 클로저 사용
+      const entries = Object.entries(common);
+      entries.sort((a, b) => (b[1]?.length || 0) - (a[1]?.length || 0));
+      for (const [emoji, users] of entries) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "react";
+        btn.dataset.action = "reaction";
+        btn.dataset.emoji = emoji;
+        btn.innerHTML = `<span class="emo">${emoji}</span><span class="cnt">${users?.length || 0}</span>`;
+        reacts.appendChild(btn);
+      }
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "react add";
+      add.dataset.action = "reaction-add";
+      add.textContent = "＋";
+      reacts.appendChild(add);
+    }
+    fillReactions(m.reactions || {});
+
     card.appendChild(meta);
     card.appendChild(body);
+    card.appendChild(reacts);
     li.appendChild(card);
 
     // 정렬 클래스 적용
@@ -290,10 +315,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     popoverEl.innerHTML = `
       <div class="item" data-room="1" data-status="">1촬영실</div>
       <div class="item" data-room="2" data-status="">2촬영실</div>
-      <div class="sep"></div>
-      <div class="item" data-reserve="1">1촬영실 예약</div>
-      <div class="item" data-reserve="2">2촬영실 예약</div>
-      <div class="item" data-reserve="">예약 해제</div>
       <div class="sep"></div>
       <div class="item" data-room="" data-status="환복중">환복중</div>
       <div class="item" data-room="" data-status="부재중">부재중</div>
@@ -348,8 +369,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (!it) return;
       const room = it.dataset.room || null;
       const status = it.dataset.status || null;
-      const reserve = typeof it.dataset.reserve === 'string' ? (it.dataset.reserve || null) : undefined;
-      onPick({ room, status, reserveRoom: reserve });
+      onPick({ room, status });
       closePopover();
       document.removeEventListener("click", onDocClick, true);
     };
@@ -396,12 +416,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
     const rect = badge.getBoundingClientRect();
 
-    openPopover(rect, ({ room, status, reserveRoom }) => {
-      if (typeof reserveRoom !== 'undefined') {
-        socket.emit("chat:update", { id, reserveRoom });
-        applyUpdateToDom({ id, reserveRoom });
-        return;
-      }
+    openPopover(rect, ({ room, status }) => {
       // 서버에 업데이트 요청 (상호배타 규칙은 서버에서도 처리)
       socket.emit("chat:update", { id, room, status });
 
@@ -413,7 +428,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   // 실시간 수신
   // 최신 메시지는 아래쪽: appendChild
   socket.on("chat:new", (m) => {
-    m.reserveRoom = m.reserveRoom || m.reserve_room || null;
     const stick = isNearBottom();
     msgs.appendChild(renderMessage(m));
     if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -436,7 +450,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     const cur = {
       room: typeof u.room !== 'undefined' ? u.room : (li.dataset.room || null),
       status: typeof u.status !== 'undefined' ? u.status : (li.dataset.status || null),
-      reserveRoom: typeof u.reserveRoom !== 'undefined' ? u.reserveRoom : (li.dataset.reserveRoom || null),
     };
 
     const hasRoom = Object.prototype.hasOwnProperty.call(u, 'room');
@@ -461,7 +474,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     if (typeof u.room !== 'undefined') li.dataset.room = u.room || '';
     if (typeof u.status !== 'undefined') li.dataset.status = u.status || '';
-    if (typeof u.reserveRoom !== 'undefined') li.dataset.reserveRoom = u.reserveRoom || '';
 
     Array.from(meta.querySelectorAll('.badge')).forEach((n) => n.remove());
     const primary = document.createElement('span');
@@ -479,29 +491,104 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
     delBtn ? meta.insertBefore(primary, delBtn) : meta.appendChild(primary);
 
-    const effReserve = cur.reserveRoom && (!cur.room || cur.room !== cur.reserveRoom) ? cur.reserveRoom : null;
-    if (effReserve) {
-      const rb = document.createElement('span');
-      rb.className = 'badge reserve';
-      rb.textContent = `예약: ${effReserve}촬영실`;
-      rb.dataset.action = 'edit-status';
-      rb.dataset.id = u.id;
-      delBtn ? meta.insertBefore(rb, delBtn) : meta.appendChild(rb);
-    }
+    // 예약 배지 제거 (기능 폐기)
+    Array.from(meta.querySelectorAll('.badge.reserve')).forEach((n) => n.remove());
 
     applyPlacementClass(li, { room: cur.room ?? null, status: cur.status ?? null });
     return li; // 필요 시 사용할 수 있도록 반환
   }
   // 서버 브로드캐스트로 온 업데이트를 DOM에 반영
   socket.on("chat:update", (u) => {
-    if (u && typeof u.reserveRoom === 'undefined' && typeof u.reserve_room !== 'undefined') {
-      u.reserveRoom = u.reserve_room;
-    }
     applyUpdateToDom(u);
     if (!u.by || u.by !== mySocketId) {
       playSound("update");
       flashById(u.id);
     }
+  });
+
+  // ==== 리액션: 토글/추가 ====
+  const REACT_CANDIDATES = ["✅", "👍", "👎", "❤️", "🔥", "❗", "👏", "🔔"];
+  function openReactionPicker(anchorRect, onPick) {
+    closePopover();
+    popoverEl = document.createElement("div");
+    popoverEl.className = "popover";
+    popoverEl.innerHTML = REACT_CANDIDATES.map((e) => `<div class="item" data-emoji="${e}">${e}</div>`).join("");
+    document.body.appendChild(popoverEl);
+    isPopoverOpen = true;
+    // 간단 포지셔닝 (아래쪽)
+    const GAP = 6;
+    let x = Math.round(anchorRect.left);
+    let y = Math.round(anchorRect.bottom + GAP);
+    popoverEl.style.left = `${x}px`;
+    popoverEl.style.top = `${y}px`;
+    const onClick = (e) => {
+      const it = e.target.closest(".item");
+      if (!it) return;
+      onPick(it.dataset.emoji);
+      closePopover();
+      document.removeEventListener("click", onDocClick, true);
+    };
+    popoverEl.addEventListener("click", onClick, { once: true });
+    const onDocClick = (e) => {
+      if (!popoverEl || popoverEl.contains(e.target)) return;
+      closePopover();
+      document.removeEventListener("click", onDocClick, true);
+    };
+    setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+  }
+
+  // 이벤트 위임: 반응 토글/추가
+  msgs.addEventListener("click", (e) => {
+    const reactBtn = e.target.closest('[data-action="reaction"]');
+    const addBtn = e.target.closest('[data-action="reaction-add"]');
+    if (!reactBtn && !addBtn) return;
+    const li = e.target.closest("li.msg");
+    if (!li) return;
+    const id = Number(li.dataset.id || "");
+    if (!id || Number.isNaN(id)) return;
+    // 현재 사용자명은 cfg.displayName 사용
+    const user = cfg.displayName || "익명";
+
+    if (reactBtn) {
+      const emoji = reactBtn.dataset.emoji;
+      socket.emit("reaction:toggle", { id, emoji, user });
+      return;
+    }
+    if (addBtn) {
+      const rect = addBtn.getBoundingClientRect();
+      openReactionPicker(rect, (emoji) => {
+        socket.emit("reaction:toggle", { id, emoji, user });
+      });
+    }
+  });
+
+  // 서버 브로드캐스트: 리액션 업데이트
+  socket.on("reaction:update", ({ id, reactions }) => {
+    const li = msgs.querySelector(`li[data-id="${id}"]`);
+    if (!li) return;
+    const reacts = li.querySelector(".reactions");
+    if (!reacts) return;
+    // 재구성
+    reacts.innerHTML = "";
+    const entries = Object.entries(reactions || {});
+    entries.sort((a, b) => (b[1]?.length || 0) - (a[1]?.length || 0));
+    for (const [emoji, users] of entries) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "react";
+      btn.dataset.action = "reaction";
+      btn.dataset.emoji = emoji;
+      btn.innerHTML = `<span class="emo">${emoji}</span><span class="cnt">${users?.length || 0}</span>`;
+      // 내가 반응한 경우 강조
+      if (Array.isArray(users) && users.includes(cfg.displayName)) btn.classList.add("active");
+      reacts.appendChild(btn);
+    }
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "react add";
+    add.dataset.action = "reaction-add";
+    add.textContent = "＋";
+    reacts.appendChild(add);
   });
 
   // ===== 드래그 앤 드롭으로 상태 변경 =====
