@@ -43,6 +43,11 @@ const updateStmt = db.prepare(`
   WHERE (id = @id OR rowid = @id)
 `);
 
+const deleteStmt = db.prepare(`
+  DELETE FROM messages
+  WHERE (id = ? OR rowid = ?)
+`);
+
 module.exports = {
   add(msg) {
     return insertStmt.run(msg);
@@ -52,5 +57,8 @@ module.exports = {
   },
   update(partial) {
     return updateStmt.run(partial);
+  },
+  delete(id) {
+    return deleteStmt.run(id, id);
   },
 };

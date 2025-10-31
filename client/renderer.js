@@ -185,6 +185,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   function applyPlacementClass(li, state) {
     li.classList.remove("pos-left", "pos-center", "pos-right");
     li.classList.add(getPlacementByState(state));
+    // 룸별 색상 구분을 위해 room-1/room-2 클래스도 관리
+    li.classList.remove("room-1", "room-2");
+    if (!state.status && (state.room === "1" || state.room === "2")) {
+      li.classList.add(state.room === "2" ? "room-2" : "room-1");
+    }
   }
 
   function renderMessage(m) {
@@ -218,11 +223,20 @@ window.addEventListener("DOMContentLoaded", async () => {
       const cls = m.status === "검사가능" ? "ready" : "status";
       meta.appendChild(makeBadge(m.status, cls));
     } else if (m.room) {
-      meta.appendChild(makeBadge(`${m.room}촬영실`, "room"));
+      const rcls = m.room === "2" ? "room room-2" : "room room-1";
+      meta.appendChild(makeBadge(`${m.room}촬영실`, rcls));
     } else {
       // 아무 상태/룸도 없을 때도 누르면 메뉴 열리도록 placeholder 배지
       meta.appendChild(makeBadge("상태 설정", "room"));
     }
+    // 삭제 버튼 (메타 우측)
+    const del = document.createElement("span");
+    del.className = "del-btn";
+    del.dataset.action = "delete";
+    del.dataset.id = String(m.id || "");
+    del.title = "삭제";
+    del.innerHTML = '<i data-lucide="trash-2"></i>';
+    meta.appendChild(del);
 
     const body = document.createElement("div");
     body.className = "patient";
@@ -334,6 +348,19 @@ window.addEventListener("DOMContentLoaded", async () => {
     setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
   }
 
+  // 메시지 삭제 처리 (이벤트 위임)
+  msgs.addEventListener("click", (e) => {
+    const btn = e.target.closest('[data-action="delete"]');
+    if (!btn) return;
+    const li = btn.closest("li.msg");
+    const idStr = li?.dataset?.id?.trim() || btn?.dataset?.id?.trim() || "";
+    const id = Number(idStr);
+    if (!id || Number.isNaN(id)) return;
+    if (!window.confirm("이 메세지를 삭제할까요?")) return;
+    socket.emit("chat:delete", { id });
+    li?.remove();
+  });
+
   // 메시지 리스트에서 "뱃지 클릭"을 이벤트 위임으로 처리
   msgs.addEventListener("click", (e) => {
     const badge = e.target.closest('.badge[data-action="edit-status"]');
@@ -367,6 +394,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   socket.on("chat:new", (m) => {
     const stick = isNearBottom();
     msgs.appendChild(renderMessage(m));
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
     if (stick) scrollToBottom();
     // 소리/반짝 (내가 보낸 것이 아니면)
     if (!m.by || m.by !== mySocketId) {
@@ -382,27 +412,28 @@ window.addEventListener("DOMContentLoaded", async () => {
     // 기존 배지 제거
     Array.from(meta.querySelectorAll(".badge")).forEach((n) => n.remove());
     // 새 배지 삽입
+    const delBtn = meta.querySelector('.del-btn');
     if (u.status) {
       const b = document.createElement("span");
       b.className = `badge ${u.status === "검사가능" ? "ready" : "status"}`;
       b.textContent = u.status;
       b.dataset.action = "edit-status";
       b.dataset.id = u.id;
-      meta.appendChild(b);
+      delBtn ? meta.insertBefore(b, delBtn) : meta.appendChild(b);
     } else if (u.room) {
       const b = document.createElement("span");
-      b.className = "badge room";
+      b.className = `badge ${u.room === "2" ? "room room-2" : "room room-1"}`;
       b.textContent = `${u.room}촬영실`;
       b.dataset.action = "edit-status";
       b.dataset.id = u.id;
-      meta.appendChild(b);
+      delBtn ? meta.insertBefore(b, delBtn) : meta.appendChild(b);
     } else {
       const b = document.createElement("span");
       b.className = "badge room";
       b.textContent = "상태 설정";
       b.dataset.action = "edit-status";
       b.dataset.id = u.id;
-      meta.appendChild(b);
+      delBtn ? meta.insertBefore(b, delBtn) : meta.appendChild(b);
     }
 
     // 상태 변경에 따른 정렬 재적용
@@ -416,6 +447,12 @@ window.addEventListener("DOMContentLoaded", async () => {
       playSound("update");
       flashById(u.id);
     }
+  });
+
+  // 삭제 브로드캐스트 수신 시 DOM에서 제거
+  socket.on("chat:delete", ({ id }) => {
+    const li = msgs.querySelector(`li[data-id="${id}"]`);
+    if (li) li.remove();
   });
 
   // 전송
@@ -452,6 +489,9 @@ window.addEventListener("DOMContentLoaded", async () => {
         if (!m.id) console.warn("[history] row without id", m);
         msgs.appendChild(renderMessage(m));
       });
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+      }
       scrollToBottom(); // 시작 시 맨 아래(최근)로
     })
     .catch(() => {});

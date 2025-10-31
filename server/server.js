@@ -58,6 +58,13 @@ io.on("connection", (socket) => {
     db.update(normailzed);
     io.emit("chat:update", { ...normailzed, by: socket.id }); // 전체 브로드캐스트
   });
+
+  // 메시지 삭제
+  socket.on("chat:delete", ({ id }) => {
+    if (!id) return;
+    db.delete(id);
+    io.emit("chat:delete", { id, by: socket.id });
+  });
 });
 
 server.listen(PORT, "0.0.0.0", () => {

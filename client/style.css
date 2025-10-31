@@ -126,7 +126,7 @@ main {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px; /* 더 촘촘하게 */
 }
 .msg {
   position: relative; /* 상태 버튼 바 등 배치 여유 */
@@ -144,14 +144,14 @@ main {
 }
 .bubble {
   max-width: 90%;
-  border-radius: 12px;
-  padding: 8px 10px;
+  border-radius: 8px;
+  padding: 4px 6px; /* 카드 높이 추가 축소 */
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   backdrop-filter: saturate(115%);
 }
 /* ⬇️ 위치별 미세 톤 차별 */
 .msg.pos-left .bubble {
-  /* 촬영실(왼쪽) = 청색 계열 */
+  /* 촬영실(왼쪽) = 청색 계열 (기본은 은은) */
   background: linear-gradient(180deg, #0f1726, #101a2b);
   border: 1px solid #2a3d63;
 }
@@ -159,8 +159,26 @@ main {
   box-shadow: 0 8px 20px rgba(20, 60, 130, 0.25);
 }
 
+/* 촬영실별(왼쪽) 카드 색상 더욱 확실히 분리 */
+.msg.pos-left.room-1 .bubble {
+  /* 1촬영실: 인디고-슬레이트 톤, 은은하지만 명확한 구분 */
+  background: linear-gradient(180deg, #121a2a, #15233a);
+  border: 2px solid #4d69a5; /* 더 두껍고 밝은 테두리 */
+}
+.msg.pos-left.room-1 .bubble:hover {
+  box-shadow: 0 8px 22px rgba(50, 75, 121, 0.28);
+}
+.msg.pos-left.room-2 .bubble {
+  /* 2촬영실: 뉴트럴 그레이-슬레이트 톤 (검사가능과 겹치지 않게) */
+  background: linear-gradient(180deg, #232a34, #2d3542); /* 한 단계 밝게 */
+  border: 2px solid #596273; /* 더 두껍고 밝은 테두리 */
+}
+.msg.pos-left.room-2 .bubble:hover {
+  box-shadow: 0 8px 22px rgba(140, 150, 170, 0.34);
+}
+
 .msg.pos-center .bubble {
-  /* 검사가능(가운데) = 녹색 계열 */
+  /* 검사가능(가운데) = 녹색 계열 (기본은 은은) */
   background: linear-gradient(180deg, #0f1f1a, #10241d);
   border: 1px solid #2b5b40;
 }
@@ -169,7 +187,7 @@ main {
 }
 
 .msg.pos-right .bubble {
-  /* 환복/부재(오른쪽) = 자주톤 */
+  /* 환복/부재(오른쪽) = 자주톤 (기본은 은은) */
   background: linear-gradient(180deg, #1b1420, #1e1624);
   border: 1px solid #5d3b5d;
 }
@@ -181,6 +199,15 @@ main {
 .badge.room {
   background: #1b2a44;
   border-color: #2b3e63;
+}
+/* 촬영실별 색상 구분 */
+.badge.room.room-1 {
+  background: #12233b;
+  border-color: #27406a;
+}
+.badge.room.room-2 {
+  background: #2b1b3f;
+  border-color: #4b2f6b;
 }
 .badge.ready {
   background: #1f3a2a;
@@ -221,13 +248,16 @@ main {
   animation: flashPulse 2s ease-out 1;
 }
 .meta {
-  font-size: 12px;
+  font-size: 9px; /* 메타 정보 더 작게 */
   opacity: 0.9;
   display: flex;
-  gap: 6px;
+  gap: 3px; /* 간격 더 축소 */
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 1px; /* 위아래 여백 더 축소 */
 }
+/* 배지와 삭제 버튼의 순서를 고정 */
+.meta .badge { order: 1; }
+.meta .del-btn { order: 2; }
 /* 팝오버 메뉴 */
 .popover {
   position: fixed; /* 부모 레이아웃 영향 x */
@@ -269,14 +299,22 @@ main {
 }
 
 .badge {
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-size: 11px;
+  padding: 0px 4px; /* 더 작게 */
+  border-radius: 6px;
+  font-size: 8px; /* 더 작게 */
   border: 1px solid #3a4863;
   cursor: pointer; /* 뱃지 클릭 가능 표시 */
 }
 .badge.room {
   background: #1b2a44;
+}
+.badge.room.room-1 {
+  background: #12233b;
+  border-color: #27406a;
+}
+.badge.room.room-2 {
+  background: #2b1b3f;
+  border-color: #4b2f6b;
 }
 .badge.status {
   background: #3a243a;
@@ -287,8 +325,9 @@ main {
   border-color: #2f5b40;
 }
 .patient {
-  font-size: 14px;
+  font-size: 14px; /* 동일 유지 */
   font-weight: 600;
+  line-height: 1.2; /* 높이 감소 */
 }
 form {
   flex: 0 0 auto;
@@ -297,6 +336,33 @@ form {
   display: grid;
   gap: 8px;
   border-top: 1px solid #2b364d;
+}
+
+/* 메시지 삭제 버튼 (메타 라인 우측) */
+.meta .del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0 4px; /* 더 작게 */
+  border-radius: 6px;
+  border: 1px solid #2b364d;
+  background: #151a28;
+  color: #cfd8e3;
+  font-size: 10px; /* 툴팁용 */
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+  user-select: none;
+}
+.meta .del-btn:hover {
+  opacity: 1;
+  background: #1b2130;
+}
+.meta .del-btn svg {
+  width: 11px; /* 더 작게 */
+  height: 11px;
+  stroke-width: 2.2;
 }
 #patient {
   flex: 1;
