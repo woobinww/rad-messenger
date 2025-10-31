@@ -34,6 +34,13 @@
       <ul id="messages"></ul>
     </main>
 
+    <!-- 드래그 앤 드롭 상태 변경 안내/하이라이트 오버레이 -->
+    <div id="dragZones" class="drag-zones" aria-hidden="true">
+      <div class="zone zone-left"><div class="label">왼쪽: 촬영실로 이동</div></div>
+      <div class="zone zone-center"><div class="label">가운데: 검사가능</div></div>
+      <div class="zone zone-right"><div class="label">오른쪽: 부재중</div></div>
+    </div>
+
     <!-- ✅ 반드시 이 ID가 존재해야 함 -->
     <form id="chatForm">
       <input

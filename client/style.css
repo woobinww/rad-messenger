@@ -298,6 +298,56 @@ main {
   opacity: 0.6;
 }
 
+/* ===== Drag & Drop 상태 변경 UI ===== */
+.no-select {
+  user-select: none !important;
+  cursor: grabbing !important;
+}
+.drag-zones {
+  position: fixed;
+  inset: 0;
+  display: none;
+  grid-template-columns: 1fr 1fr 1fr;
+  z-index: 9998;
+  pointer-events: none; /* 드래그를 방해하지 않음 */
+}
+.drag-zones.active { display: grid; }
+.drag-zones .zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cfd8e3;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  opacity: 0.6;
+  transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
+  border: 2px dashed transparent;
+}
+.drag-zones .zone .label {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(15, 20, 34, 0.75);
+  border: 1px solid rgba(43, 54, 77, 0.8);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.drag-zones .zone-left { background: rgba(20, 26, 40, 0.25); }
+.drag-zones .zone-center { background: rgba(18, 36, 28, 0.22); }
+.drag-zones .zone-right { background: rgba(40, 20, 42, 0.22); }
+
+.drag-zones .zone.active { opacity: 1; border-color: rgba(120, 140, 200, 0.6); }
+.drag-zones .zone-left.active .label { background: rgba(16, 24, 40, 0.85); }
+.drag-zones .zone-center.active .label { background: rgba(18, 40, 30, 0.85); }
+.drag-zones .zone-right.active .label { background: rgba(36, 20, 38, 0.85); }
+
+.msg.dragging { opacity: 0.35; }
+.drag-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,0.45));
+}
+
 .badge {
   padding: 0px 4px; /* 더 작게 */
   border-radius: 6px;

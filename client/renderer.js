@@ -449,6 +449,139 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // ===== 드래그 앤 드롭으로 상태 변경 =====
+  const dragZonesEl = document.getElementById("dragZones");
+  const zoneLeft = dragZonesEl?.querySelector(".zone-left");
+  const zoneCenter = dragZonesEl?.querySelector(".zone-center");
+  const zoneRight = dragZonesEl?.querySelector(".zone-right");
+
+  const dragState = {
+    active: false,
+    started: false,
+    startX: 0,
+    startY: 0,
+    curZone: null,
+    li: null,
+    id: null,
+    ghost: null,
+  };
+
+  function setZonesActive(on) {
+    if (!dragZonesEl) return;
+    dragZonesEl.classList.toggle("active", !!on);
+    [zoneLeft, zoneCenter, zoneRight].filter(Boolean).forEach((z) => z.classList.remove("active"));
+  }
+
+  function pickZoneByX(x) {
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    const third = vw / 3;
+    if (x < third) return "left";
+    if (x > 2 * third) return "right";
+    return "center";
+  }
+
+  function highlightZone(kind) {
+    [zoneLeft, zoneCenter, zoneRight].filter(Boolean).forEach((z) => z.classList.remove("active"));
+    if (kind === "left") zoneLeft?.classList.add("active");
+    else if (kind === "center") zoneCenter?.classList.add("active");
+    else if (kind === "right") zoneRight?.classList.add("active");
+  }
+
+  function createGhostFrom(li, x, y) {
+    const card = li.querySelector(".bubble") || li;
+    const rect = card.getBoundingClientRect();
+    const ghost = card.cloneNode(true);
+    ghost.classList.add("drag-ghost");
+    ghost.style.width = Math.round(rect.width) + "px";
+    ghost.style.height = Math.round(rect.height) + "px";
+    ghost.style.left = `${x}px`;
+    ghost.style.top = `${y}px`;
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function endDrag(commit) {
+    document.body.classList.remove("no-select");
+    setZonesActive(false);
+    dragState.li?.classList.remove("dragging");
+    if (dragState.ghost && dragState.ghost.parentNode) {
+      dragState.ghost.parentNode.removeChild(dragState.ghost);
+    }
+    const { id } = dragState;
+    const z = dragState.curZone;
+    dragState.active = dragState.started = false;
+    dragState.li = dragState.ghost = dragState.curZone = null;
+    dragState.id = null;
+
+    if (!commit || !id || !z) return;
+    // 드롭된 존에 따라 상태 결정
+    let room = null;
+    let status = null;
+    if (z === "left") {
+      // 현재 선택된 촬영실(라디오)이 있으면 우선, 없으면 config의 defaultRoom 사용
+      const checked = roomRadios.find((r) => r.checked)?.value || String(cfg.defaultRoom || "1");
+      room = checked === "2" ? "2" : "1";
+      status = null;
+    } else if (z === "center") {
+      room = null;
+      status = "검사가능";
+    } else if (z === "right") {
+      room = null;
+      status = "부재중";
+    }
+
+    // 서버 업데이트 + 옵티미스틱 반영
+    socket.emit("chat:update", { id, room, status });
+    applyUpdateToDom({ id, room, status });
+  }
+
+  msgs.addEventListener("mousedown", (e) => {
+    // 인터랙션 요소 클릭시(삭제/배지 등) 드래그 비활성화
+    if (e.button !== 0) return; // 좌클릭만
+    if (e.target.closest('[data-action]')) return;
+    const li = e.target.closest("li.msg");
+    if (!li) return;
+    const id = Number(li.dataset.id || "");
+    if (!id || Number.isNaN(id)) return;
+
+    dragState.active = true;
+    dragState.started = false;
+    dragState.startX = e.clientX;
+    dragState.startY = e.clientY;
+    dragState.li = li;
+    dragState.id = id;
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!dragState.active) return;
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    const threshold = 4; // 약간 움직여야 드래그로 간주
+
+    if (!dragState.started) {
+      if (Math.abs(dx) + Math.abs(dy) < threshold) return;
+      dragState.started = true;
+      document.body.classList.add("no-select");
+      dragState.li?.classList.add("dragging");
+      setZonesActive(true);
+      dragState.ghost = createGhostFrom(dragState.li, e.clientX, e.clientY);
+    }
+
+    if (dragState.ghost) {
+      dragState.ghost.style.left = `${e.clientX}px`;
+      dragState.ghost.style.top = `${e.clientY}px`;
+    }
+    const zone = pickZoneByX(e.clientX);
+    dragState.curZone = zone;
+    highlightZone(zone);
+  });
+
+  document.addEventListener("mouseup", (e) => {
+    if (!dragState.active) return;
+    const doCommit = !!dragState.started; // 드래그가 실제 시작되었을 때만 커밋
+    endDrag(doCommit);
+  });
+
   // 삭제 브로드캐스트 수신 시 DOM에서 제거
   socket.on("chat:delete", ({ id }) => {
     const li = msgs.querySelector(`li[data-id="${id}"]`);
