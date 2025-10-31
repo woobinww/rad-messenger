@@ -196,6 +196,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     const li = document.createElement("li");
     li.className = "msg";
     li.dataset.id = String(m.id || ""); // DOM에 id 보관(업데이트 타겟팅). li에 data-id 저장
+    if (m.room) li.dataset.room = String(m.room);
+    if (m.status) li.dataset.status = String(m.status);
+    const initialReserve = m.reserveRoom || m.reserve_room || null;
+    if (initialReserve) li.dataset.reserveRoom = String(initialReserve);
 
     const card = document.createElement("div");
     card.className = "bubble";
@@ -228,6 +232,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     } else {
       // 아무 상태/룸도 없을 때도 누르면 메뉴 열리도록 placeholder 배지
       meta.appendChild(makeBadge("상태 설정", "room"));
+    }
+    const effReserve = initialReserve && (!m.room || String(m.room) !== String(initialReserve)) ? initialReserve : null;
+    if (effReserve) {
+      meta.appendChild(makeBadge(`예약: ${effReserve}촬영실`, "reserve"));
     }
     // 삭제 버튼 (메타 우측)
     const del = document.createElement("span");
@@ -281,6 +289,10 @@ window.addEventListener("DOMContentLoaded", async () => {
       <div class="item" data-room="1" data-status="">1촬영실</div>
       <div class="item" data-room="2" data-status="">2촬영실</div>
       <div class="sep"></div>
+      <div class="item" data-reserve="1">1촬영실 예약</div>
+      <div class="item" data-reserve="2">2촬영실 예약</div>
+      <div class="item" data-reserve="">예약 해제</div>
+      <div class="sep"></div>
       <div class="item" data-room="" data-status="환복중">환복중</div>
       <div class="item" data-room="" data-status="부재중">부재중</div>
       <div class="sep"></div>
@@ -333,7 +345,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (!it) return;
       const room = it.dataset.room || null;
       const status = it.dataset.status || null;
-      onPick({ room, status });
+      const reserve = typeof it.dataset.reserve === 'string' ? (it.dataset.reserve || null) : undefined;
+      onPick({ room, status, reserveRoom: reserve });
       closePopover();
       document.removeEventListener("click", onDocClick, true);
     };
@@ -380,7 +393,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
     const rect = badge.getBoundingClientRect();
 
-    openPopover(rect, ({ room, status }) => {
+    openPopover(rect, ({ room, status, reserveRoom }) => {
+      if (typeof reserveRoom !== 'undefined') {
+        socket.emit("chat:update", { id, reserveRoom });
+        applyUpdateToDom({ id, reserveRoom });
+        return;
+      }
       // 서버에 업데이트 요청 (상호배타 규칙은 서버에서도 처리)
       socket.emit("chat:update", { id, room, status });
 
@@ -409,35 +427,45 @@ window.addEventListener("DOMContentLoaded", async () => {
     const li = msgs.querySelector(`li[data-id="${u.id}"]`);
     if (!li) return;
     const meta = li.querySelector(".meta");
-    // 기존 배지 제거
-    Array.from(meta.querySelectorAll(".badge")).forEach((n) => n.remove());
-    // 새 배지 삽입
     const delBtn = meta.querySelector('.del-btn');
-    if (u.status) {
-      const b = document.createElement("span");
-      b.className = `badge ${u.status === "검사가능" ? "ready" : "status"}`;
-      b.textContent = u.status;
-      b.dataset.action = "edit-status";
-      b.dataset.id = u.id;
-      delBtn ? meta.insertBefore(b, delBtn) : meta.appendChild(b);
-    } else if (u.room) {
-      const b = document.createElement("span");
-      b.className = `badge ${u.room === "2" ? "room room-2" : "room room-1"}`;
-      b.textContent = `${u.room}촬영실`;
-      b.dataset.action = "edit-status";
-      b.dataset.id = u.id;
-      delBtn ? meta.insertBefore(b, delBtn) : meta.appendChild(b);
+
+    const cur = {
+      room: typeof u.room !== 'undefined' ? u.room : (li.dataset.room || null),
+      status: typeof u.status !== 'undefined' ? u.status : (li.dataset.status || null),
+      reserveRoom: typeof u.reserveRoom !== 'undefined' ? u.reserveRoom : (li.dataset.reserveRoom || null),
+    };
+
+    if (typeof u.room !== 'undefined') li.dataset.room = u.room || '';
+    if (typeof u.status !== 'undefined') li.dataset.status = u.status || '';
+    if (typeof u.reserveRoom !== 'undefined') li.dataset.reserveRoom = u.reserveRoom || '';
+
+    Array.from(meta.querySelectorAll('.badge')).forEach((n) => n.remove());
+    const primary = document.createElement('span');
+    primary.dataset.action = 'edit-status';
+    primary.dataset.id = u.id;
+    if (cur.status) {
+      primary.className = `badge ${cur.status === '검사가능' ? 'ready' : 'status'}`;
+      primary.textContent = cur.status;
+    } else if (cur.room) {
+      primary.className = `badge ${cur.room === '2' ? 'room room-2' : 'room room-1'}`;
+      primary.textContent = `${cur.room}촬영실`;
     } else {
-      const b = document.createElement("span");
-      b.className = "badge room";
-      b.textContent = "상태 설정";
-      b.dataset.action = "edit-status";
-      b.dataset.id = u.id;
-      delBtn ? meta.insertBefore(b, delBtn) : meta.appendChild(b);
+      primary.className = 'badge room';
+      primary.textContent = '상태 설정';
+    }
+    delBtn ? meta.insertBefore(primary, delBtn) : meta.appendChild(primary);
+
+    const effReserve = cur.reserveRoom && (!cur.room || cur.room !== cur.reserveRoom) ? cur.reserveRoom : null;
+    if (effReserve) {
+      const rb = document.createElement('span');
+      rb.className = 'badge reserve';
+      rb.textContent = `예약: ${effReserve}촬영실`;
+      rb.dataset.action = 'edit-status';
+      rb.dataset.id = u.id;
+      delBtn ? meta.insertBefore(rb, delBtn) : meta.appendChild(rb);
     }
 
-    // 상태 변경에 따른 정렬 재적용
-    applyPlacementClass(li, { room: u.room ?? null, status: u.status ?? null });
+    applyPlacementClass(li, { room: cur.room ?? null, status: cur.status ?? null });
     return li; // 필요 시 사용할 수 있도록 반환
   }
   // 서버 브로드캐스트로 온 업데이트를 DOM에 반영
