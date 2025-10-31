@@ -246,14 +246,13 @@ window.addEventListener("DOMContentLoaded", async () => {
     body.className = "patient";
     body.textContent = m.text;
 
-    // === 리액션 바 ===
+    // === 리액션 바 (메타 라인에 inline 배치) ===
     const reacts = document.createElement("div");
     reacts.className = "reactions";
     reacts.dataset.id = String(m.id || "");
     function fillReactions(reactionMap) {
       reacts.innerHTML = "";
       const common = m.reactions || reactionMap || {};
-      const myName = (window?.api ? null : null); // renderer에서 cfg참조가 쉬워서 아래 클로저 사용
       const entries = Object.entries(common);
       entries.sort((a, b) => (b[1]?.length || 0) - (a[1]?.length || 0));
       for (const [emoji, users] of entries) {
@@ -263,6 +262,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         btn.dataset.action = "reaction";
         btn.dataset.emoji = emoji;
         btn.innerHTML = `<span class="emo">${emoji}</span><span class="cnt">${users?.length || 0}</span>`;
+        // 내가 반응한 경우 강조
+        if (Array.isArray(users) && users.includes(cfg.displayName)) btn.classList.add("active");
         reacts.appendChild(btn);
       }
       const add = document.createElement("button");
@@ -276,7 +277,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     card.appendChild(meta);
     card.appendChild(body);
-    card.appendChild(reacts);
+    // 메타의 삭제 버튼 앞에 reactions 삽입
+    const delBtn = meta.querySelector('.del-btn');
+    delBtn ? meta.insertBefore(reacts, delBtn) : meta.appendChild(reacts);
     li.appendChild(card);
 
     // 정렬 클래스 적용
@@ -551,12 +554,46 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     if (reactBtn) {
       const emoji = reactBtn.dataset.emoji;
+      // 옵티미스틱 UI 토글
+      const cntEl = reactBtn.querySelector('.cnt');
+      let c = parseInt(cntEl?.textContent || '0', 10);
+      if (reactBtn.classList.contains('active')) {
+        // 해제: 카운트 감소 후 0이면 버튼 제거
+        const next = Number.isNaN(c) ? 0 : Math.max(0, c - 1);
+        if (next <= 0) {
+          reactBtn.remove();
+        } else if (cntEl) {
+          cntEl.textContent = String(next);
+          reactBtn.classList.remove('active');
+        }
+      } else {
+        // 추가: 카운트 증가 + 활성화
+        if (!Number.isNaN(c) && cntEl) cntEl.textContent = String(c + 1);
+        reactBtn.classList.add('active');
+      }
       socket.emit("reaction:toggle", { id, emoji, user });
       return;
     }
     if (addBtn) {
       const rect = addBtn.getBoundingClientRect();
       openReactionPicker(rect, (emoji) => {
+        // 이미 있는 버튼이 있으면 증가/활성, 없으면 새로 추가(옵티미스틱)
+        const reacts = li.querySelector('.reactions');
+        let btn = reacts?.querySelector(`.react[data-emoji="${emoji}"]`);
+        if (btn) {
+          const cntEl = btn.querySelector('.cnt');
+          let c = parseInt(cntEl?.textContent || '0', 10);
+          btn.classList.add('active');
+          if (!Number.isNaN(c)) cntEl.textContent = String(c + 1);
+        } else if (reacts) {
+          btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'react active';
+          btn.dataset.action = 'reaction';
+          btn.dataset.emoji = emoji;
+          btn.innerHTML = `<span class="emo">${emoji}</span><span class="cnt">1</span>`;
+          reacts.insertBefore(btn, addBtn);
+        }
         socket.emit("reaction:toggle", { id, emoji, user });
       });
     }
@@ -566,9 +603,16 @@ window.addEventListener("DOMContentLoaded", async () => {
   socket.on("reaction:update", ({ id, reactions }) => {
     const li = msgs.querySelector(`li[data-id="${id}"]`);
     if (!li) return;
-    const reacts = li.querySelector(".reactions");
-    if (!reacts) return;
-    // 재구성
+    const meta = li.querySelector('.meta');
+    if (!meta) return;
+    let reacts = meta.querySelector('.reactions');
+    if (!reacts) {
+      reacts = document.createElement('div');
+      reacts.className = 'reactions';
+      const delBtn = meta.querySelector('.del-btn');
+      delBtn ? meta.insertBefore(reacts, delBtn) : meta.appendChild(reacts);
+    }
+    // 재구성 (작은 칩, 한 줄 유지)
     reacts.innerHTML = "";
     const entries = Object.entries(reactions || {});
     entries.sort((a, b) => (b[1]?.length || 0) - (a[1]?.length || 0));
@@ -579,7 +623,6 @@ window.addEventListener("DOMContentLoaded", async () => {
       btn.dataset.action = "reaction";
       btn.dataset.emoji = emoji;
       btn.innerHTML = `<span class="emo">${emoji}</span><span class="cnt">${users?.length || 0}</span>`;
-      // 내가 반응한 경우 강조
       if (Array.isArray(users) && users.includes(cfg.displayName)) btn.classList.add("active");
       reacts.appendChild(btn);
     }

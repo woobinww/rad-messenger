@@ -302,32 +302,35 @@ main {
 
 /* ==== 이모지 리액션 바 ==== */
 .reactions {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  max-height: 18px; /* 한 줄 유지에 도움 */
+  overflow: hidden;
 }
 .react {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
+  gap: 4px;
+  height: 16px;
+  line-height: 16px;
+  padding: 0 6px;
+  font-size: 10px;
   border-radius: 999px;
   border: 1px solid #2b364d;
-  background: rgba(15, 20, 34, 0.6);
+  background: rgba(15, 20, 34, 0.5);
   cursor: pointer;
 }
+.react .emo { font-size: 12px; line-height: 12px; }
+.react .cnt { opacity: 0.9; }
 .react.active {
   border-color: #556aa3;
-  background: rgba(25, 36, 60, 0.75);
+  background: rgba(25, 36, 60, 0.65);
 }
-.react .cnt {
-  opacity: 0.9;
-}
-.react.add {
-  opacity: 0.8;
-}
+.react.add { display: none; opacity: 0.85; }
+.msg:hover .react.add { display: inline-flex; }
 .react.add:hover { opacity: 1; }
 
 /* ===== Drag & Drop 상태 변경 UI ===== */
