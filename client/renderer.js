@@ -410,6 +410,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   // 실시간 수신
   // 최신 메시지는 아래쪽: appendChild
   socket.on("chat:new", (m) => {
+    m.reserveRoom = m.reserveRoom || m.reserve_room || null;
     const stick = isNearBottom();
     msgs.appendChild(renderMessage(m));
     if (window.lucide && typeof window.lucide.createIcons === "function") {
@@ -434,6 +435,26 @@ window.addEventListener("DOMContentLoaded", async () => {
       status: typeof u.status !== 'undefined' ? u.status : (li.dataset.status || null),
       reserveRoom: typeof u.reserveRoom !== 'undefined' ? u.reserveRoom : (li.dataset.reserveRoom || null),
     };
+
+    const hasRoom = Object.prototype.hasOwnProperty.call(u, 'room');
+    const hasStatus = Object.prototype.hasOwnProperty.call(u, 'status');
+    const hasReserve = Object.prototype.hasOwnProperty.call(u, 'reserveRoom');
+
+    // 예약만 변경되는 경우: 기본 상태/룸 배지는 유지하고 예약 배지만 갱신
+    if (hasReserve && !hasRoom && !hasStatus) {
+      li.dataset.reserveRoom = u.reserveRoom || '';
+      Array.from(meta.querySelectorAll('.badge.reserve')).forEach((n) => n.remove());
+      const effReserveOnly = u.reserveRoom && (!cur.room || cur.room !== u.reserveRoom) ? u.reserveRoom : null;
+      if (effReserveOnly) {
+        const rb = document.createElement('span');
+        rb.className = 'badge reserve';
+        rb.textContent = `예약: ${effReserveOnly}촬영실`;
+        rb.dataset.action = 'edit-status';
+        rb.dataset.id = u.id;
+        delBtn ? meta.insertBefore(rb, delBtn) : meta.appendChild(rb);
+      }
+      return li;
+    }
 
     if (typeof u.room !== 'undefined') li.dataset.room = u.room || '';
     if (typeof u.status !== 'undefined') li.dataset.status = u.status || '';
