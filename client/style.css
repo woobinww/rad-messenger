@@ -458,6 +458,8 @@ form {
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
+  pointer-events: auto !important; /* 안전장치: 항상 클릭 가능 */
+  cursor: text !important; /* 안전장치: I-beam 커서 유지 */
   /*
 border: 1px solid #2b364d;
 background: #101725;

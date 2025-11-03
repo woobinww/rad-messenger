@@ -844,6 +844,18 @@ window.addEventListener("DOMContentLoaded", async () => {
     input.focus();
     scrollToBottom(); // 내가 보낸 후에도 하단 고정
   });
+  
+  // 폼 영역을 클릭하면 항상 입력창으로 포커스 전달(오버레이 잔존 대비)
+  form.addEventListener("click", () => {
+    hardResetInteraction();
+    try { input.focus(); } catch {}
+  });
+
+  // 창 포커스를 되찾을 때도 복구
+  window.addEventListener("focus", () => {
+    hardResetInteraction();
+    try { input.focus(); } catch {}
+  });
 
   // 초기 히스토리: 오래된 → 최신 순으로 받아서 "아래에 최신"
   fetch(`${cfg.serverUrl}/history?limit=500`)
