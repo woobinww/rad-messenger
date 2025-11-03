@@ -414,6 +414,55 @@ window.addEventListener("DOMContentLoaded", async () => {
     setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
   }
 
+  // 삭제 확인 팝오버 (네이티브 confirm 대신 사용)
+  let delConfirmEl = null;
+  function closeDeleteConfirm() {
+    if (delConfirmEl && delConfirmEl.parentNode) delConfirmEl.parentNode.removeChild(delConfirmEl);
+    delConfirmEl = null;
+  }
+  function openDeleteConfirm(anchorEl, onYes, onNo) {
+    closeDeleteConfirm();
+    const rect = anchorEl.getBoundingClientRect();
+    delConfirmEl = document.createElement("div");
+    delConfirmEl.className = "popover"; // 기존 팝오버 스타일 재사용
+    delConfirmEl.innerHTML = `
+      <div style="font-size:11px; opacity:0.9; margin-bottom:6px;">메시지를 삭제할까요?</div>
+      <div class="item" data-role="yes" style="color:#ff6666;">삭제</div>
+      <div class="item" data-role="no">취소</div>
+    `;
+    document.body.appendChild(delConfirmEl);
+
+    // 위치: 버튼 아래쪽
+    const GAP = 6;
+    let x = Math.round(rect.left);
+    let y = Math.round(rect.bottom + GAP);
+    // 뷰포트 클램프
+    const vw = window.innerWidth;
+    const pw = delConfirmEl.offsetWidth;
+    if (x + pw > vw - 8) x = vw - pw - 8;
+    if (x < 8) x = 8;
+    delConfirmEl.style.left = `${x}px`;
+    delConfirmEl.style.top = `${y}px`;
+
+    const onClick = (e) => {
+      const it = e.target.closest(".item");
+      if (!it) return;
+      const role = it.getAttribute("data-role");
+      if (role === "yes") onYes?.();
+      else onNo?.();
+      closeDeleteConfirm();
+    };
+    delConfirmEl.addEventListener("click", onClick, { once: true });
+
+    const onDoc = (e) => {
+      if (!delConfirmEl || delConfirmEl.contains(e.target)) return;
+      onNo?.();
+      closeDeleteConfirm();
+      document.removeEventListener("mousedown", onDoc, true);
+    };
+    setTimeout(() => document.addEventListener("mousedown", onDoc, true), 0);
+  }
+
   // 메시지 삭제 처리 (이벤트 위임)
   msgs.addEventListener("click", (e) => {
     const btn = e.target.closest('[data-action="delete"]');
@@ -422,18 +471,25 @@ window.addEventListener("DOMContentLoaded", async () => {
     const idStr = li?.dataset?.id?.trim() || btn?.dataset?.id?.trim() || "";
     const id = Number(idStr);
     if (!id || Number.isNaN(id)) return;
-    if (!window.confirm("이 메세지를 삭제할까요?")) return;
-    socket.emit("chat:delete", { id });
-    li?.remove();
-    // 삭제 후 잔여 오버레이/팝오버/포커스 정리 + 하드 리셋
-    hardResetInteraction();
-    try { btn.blur(); } catch {}
-    // confirm 이후 즉시 focus가 실패하는 환경이 있어 지연 재시도
-    try { input.blur(); } catch {}
-    try { input.focus(); } catch {}
-    setTimeout(() => { try { input.focus(); } catch {} }, 0);
-    setTimeout(() => { try { input.click(); input.focus(); } catch {} }, 25);
-    setTimeout(() => { try { input.focus(); } catch {} }, 60);
+
+    openDeleteConfirm(btn, () => {
+      // Yes
+      socket.emit("chat:delete", { id });
+      li?.remove();
+      hardResetInteraction();
+      try { btn.blur(); } catch {}
+      try { input.blur(); } catch {}
+      try { input.focus(); } catch {}
+      setTimeout(() => { try { input.focus(); } catch {} }, 0);
+      setTimeout(() => { try { input.click(); input.focus(); } catch {} }, 25);
+      setTimeout(() => { try { input.focus(); } catch {} }, 60);
+    }, () => {
+      // No/바깥 클릭: 상태 복구만
+      hardResetInteraction();
+      try { input.blur(); } catch {}
+      try { input.focus(); } catch {}
+      setTimeout(() => { try { input.focus(); } catch {} }, 0);
+    });
   });
 
   // 메시지 리스트에서 "뱃지 클릭"을 이벤트 위임으로 처리
