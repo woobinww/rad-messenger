@@ -1,7 +1,32 @@
 const Database = require("better-sqlite3");
 const path = require("path");
+const fs = require("fs");
 
-const db = new Database(path.join(__dirname, "messages.db"));
+// Use a persistent, system-wide path by default on Windows to avoid
+// accidental resets when the app folder is updated/replaced.
+function resolveDbPath() {
+  // 1) Explicit env override (useful for testing)
+  const envPath = process.env.RAD_DB_PATH;
+  if (envPath && envPath.trim()) return envPath.trim();
+
+  // 2) Windows ProgramData location
+  if (process.platform === "win32") {
+    const base = process.env.PROGRAMDATA || "C:\\ProgramData";
+    const dir = path.join(base, "RadMessenger", "server");
+    try {
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    } catch (_) {
+      // Fallback to local dir if creation fails
+      return path.join(__dirname, "messages.db");
+    }
+    return path.join(dir, "messages.db");
+  }
+
+  // 3) Fallback to local server folder
+  return path.join(__dirname, "messages.db");
+}
+
+const db = new Database(resolveDbPath());
 db.pragma("journal_mode = WAL");
 db.exec(`
 CREATE TABLE IF NOT EXISTS messages (
