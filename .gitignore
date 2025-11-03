@@ -31,3 +31,5 @@ desktop.ini
 ehthumbs.db
 Icon?
 
+# personal configuration
+client/config.json

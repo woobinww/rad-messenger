@@ -17,10 +17,10 @@ app.get("/", (_, res) => res.send("rad-messenger server ok"));
 // 과거 메세지 페이징 조회 (선택)
 app.get("/history", (req, res) => {
   const limit = Math.min(parseInt(req.query.limit || "100", 10), 500);
-  const offset = parseInt(req.query.offset || "0", 10);
-  const rows = db.list(limit, offset);
-  // 각 메시지에 reactions 맵 추가
-  const withReacts = rows.map((m) => ({ ...m, reactions: db.listReactions(m.id) }));
+  // 최신 N개를 가져온 다음 시간/ID 오름차순으로 되돌려서 전달
+  const latest = db.listLatest(limit);
+  latest.reverse();
+  const withReacts = latest.map((m) => ({ ...m, reactions: db.listReactions(m.id) }));
   res.json(withReacts);
 });
 

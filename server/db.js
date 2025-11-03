@@ -63,6 +63,16 @@ const listStmt = db.prepare(`
   LIMIT ? OFFSET ?
 `);
 
+// 최신순으로 N개만 조회 (히스토리 최초 로드용)
+const listLatestStmt = db.prepare(`
+  SELECT
+    COALESCE(id, rowid) AS id,
+    ts, sender, text, room, status
+  FROM messages
+  ORDER BY COALESCE(id, rowid) DESC
+  LIMIT ?
+`);
+
 const updateStmt = db.prepare(`
   UPDATE messages
   SET room = @room,
@@ -97,6 +107,9 @@ module.exports = {
   },
   list(limit = 100, offset = 0) {
     return listStmt.all(limit, offset);
+  },
+  listLatest(limit = 100) {
+    return listLatestStmt.all(limit);
   },
   update(partial) {
     return updateStmt.run(partial);

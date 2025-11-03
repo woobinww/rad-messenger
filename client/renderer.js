@@ -398,8 +398,13 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (!window.confirm("이 메세지를 삭제할까요?")) return;
     socket.emit("chat:delete", { id });
     li?.remove();
-    // 삭제 후 입력창 포커스가 풀리는 문제 방지
-    try { input.focus(); } catch {}
+    // 삭제 후 잔여 오버레이/팝오버/포커스 정리
+    try {
+      closePopover();
+      document.body.classList.remove("no-select");
+      setZonesActive(false);
+      input.focus();
+    } catch {}
   });
 
   // 메시지 리스트에서 "뱃지 클릭"을 이벤트 위임으로 처리
@@ -775,8 +780,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   socket.on("chat:delete", ({ id }) => {
     const li = msgs.querySelector(`li[data-id="${id}"]`);
     if (li) li.remove();
-    // 브로드캐스트로 삭제된 경우에도 입력창 포커스 유지/복원
-    try { input.focus(); } catch {}
+    // 브로드캐스트로 삭제된 경우에도 입력창 포커스/상태 정리
+    try {
+      closePopover();
+      document.body.classList.remove("no-select");
+      setZonesActive(false);
+      input.focus();
+    } catch {}
   });
 
   // 전송
@@ -806,7 +816,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   // 초기 히스토리: 오래된 → 최신 순으로 받아서 "아래에 최신"
-  fetch(`${cfg.serverUrl}/history?limit=200`)
+  fetch(`${cfg.serverUrl}/history?limit=500`)
     .then((r) => r.json())
     .then((rows) => {
       rows.forEach((m) => {
