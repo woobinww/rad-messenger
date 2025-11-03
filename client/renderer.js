@@ -309,6 +309,33 @@ window.addEventListener("DOMContentLoaded", async () => {
     popoverEl = null;
     isPopoverOpen = false;
   }
+
+  // 강제 상호작용 상태 초기화 (드래그/팝오버/포커스 등)
+  function hardResetInteraction() {
+    try { closePopover(); } catch {}
+    try { document.body.classList.remove("no-select"); } catch {}
+    try { setZonesActive(false); } catch {}
+    try {
+      if (dragState && dragState.ghost && dragState.ghost.parentNode) {
+        dragState.ghost.parentNode.removeChild(dragState.ghost);
+      }
+      if (dragState) {
+        dragState.active = false;
+        dragState.started = false;
+        dragState.curZone = null;
+        dragState.li = null;
+        dragState.id = null;
+        dragState.ghost = null;
+      }
+    } catch {}
+    try {
+      // 혹시라도 비활성화/읽기전용 상태가 남았을 수 있으니 해제
+      if (input) {
+        input.disabled = false;
+        input.readOnly = false;
+      }
+    } catch {}
+  }
   // 개선된 팝오버: 화면 밖 잘림 방지 (상단 플립 + 우측/좌측 클램프)
   function openPopover(anchorRect, onPick) {
     // 1) 팝오버 생성(먼저 body에 붙여 실제 크기 측정)
@@ -398,13 +425,11 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (!window.confirm("이 메세지를 삭제할까요?")) return;
     socket.emit("chat:delete", { id });
     li?.remove();
-    // 삭제 후 잔여 오버레이/팝오버/포커스 정리
-    try {
-      closePopover();
-      document.body.classList.remove("no-select");
-      setZonesActive(false);
-      input.focus();
-    } catch {}
+    // 삭제 후 잔여 오버레이/팝오버/포커스 정리 + 하드 리셋
+    hardResetInteraction();
+    try { btn.blur(); } catch {}
+    try { input.blur(); } catch {}
+    try { input.focus(); } catch {}
   });
 
   // 메시지 리스트에서 "뱃지 클릭"을 이벤트 위임으로 처리
@@ -780,13 +805,18 @@ window.addEventListener("DOMContentLoaded", async () => {
   socket.on("chat:delete", ({ id }) => {
     const li = msgs.querySelector(`li[data-id="${id}"]`);
     if (li) li.remove();
-    // 브로드캐스트로 삭제된 경우에도 입력창 포커스/상태 정리
-    try {
-      closePopover();
-      document.body.classList.remove("no-select");
-      setZonesActive(false);
-      input.focus();
-    } catch {}
+    // 브로드캐스트로 삭제된 경우에도 입력창 포커스/상태 정리 + 하드 리셋
+    hardResetInteraction();
+    try { input.blur(); } catch {}
+    try { input.focus(); } catch {}
+  });
+
+  // 비상 복구: ESC 키로 인터랙션 초기화 + 입력창 포커스
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      hardResetInteraction();
+      try { input.focus(); } catch {}
+    }
   });
 
   // 전송
