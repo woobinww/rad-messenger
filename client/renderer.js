@@ -428,8 +428,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     // 삭제 후 잔여 오버레이/팝오버/포커스 정리 + 하드 리셋
     hardResetInteraction();
     try { btn.blur(); } catch {}
+    // confirm 이후 즉시 focus가 실패하는 환경이 있어 지연 재시도
     try { input.blur(); } catch {}
     try { input.focus(); } catch {}
+    setTimeout(() => { try { input.focus(); } catch {} }, 0);
+    setTimeout(() => { try { input.click(); input.focus(); } catch {} }, 25);
+    setTimeout(() => { try { input.focus(); } catch {} }, 60);
   });
 
   // 메시지 리스트에서 "뱃지 클릭"을 이벤트 위임으로 처리
@@ -809,6 +813,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     hardResetInteraction();
     try { input.blur(); } catch {}
     try { input.focus(); } catch {}
+    setTimeout(() => { try { input.focus(); } catch {} }, 0);
+    setTimeout(() => { try { input.click(); input.focus(); } catch {} }, 25);
+    setTimeout(() => { try { input.focus(); } catch {} }, 60);
   });
 
   // 비상 복구: ESC 키로 인터랙션 초기화 + 입력창 포커스
@@ -816,6 +823,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (e.key === "Escape") {
       hardResetInteraction();
       try { input.focus(); } catch {}
+      setTimeout(() => { try { input.focus(); } catch {} }, 0);
     }
   });
 
@@ -849,13 +857,33 @@ window.addEventListener("DOMContentLoaded", async () => {
   form.addEventListener("click", () => {
     hardResetInteraction();
     try { input.focus(); } catch {}
+    setTimeout(() => { try { input.focus(); } catch {} }, 0);
   });
 
   // 창 포커스를 되찾을 때도 복구
   window.addEventListener("focus", () => {
     hardResetInteraction();
     try { input.focus(); } catch {}
+    setTimeout(() => { try { input.focus(); } catch {} }, 0);
   });
+
+  // 캡처 단계에서 폼 영역 클릭을 가로채 입력칸에 포커스(보이지 않는 오버레이 대비)
+  document.addEventListener(
+    "mousedown",
+    (e) => {
+      try {
+        const rect = form.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        if (inside) {
+          hardResetInteraction();
+          setTimeout(() => { try { input.focus(); } catch {} }, 0);
+        }
+      } catch {}
+    },
+    true,
+  );
 
   // 초기 히스토리: 오래된 → 최신 순으로 받아서 "아래에 최신"
   fetch(`${cfg.serverUrl}/history?limit=500`)
